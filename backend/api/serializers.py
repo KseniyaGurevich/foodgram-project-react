@@ -40,12 +40,11 @@ class TagSerializers(serializers.ModelSerializer):
         fields = ('id', 'name', 'color', 'slug')
 
 
-class IngredientSerializer(serializers.ReadOnlyField):
+class IngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ingredient
-        fields = ('id', 'name', 'measurement_unit', 'amount')
-
+        fields = ('id', 'name', 'measurement_unit')
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
@@ -121,14 +120,13 @@ class RecipePostSerializer(serializers.ModelSerializer):
         IngredientRecipe.objects.filter(recipe=instance).delete()
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        Recipe.objects.create(**validated_data)
+        instance = Recipe.objects.create(**validated_data)
         for ingredient in ingredients:
             IngredientRecipe.objects.create(
                 ingredient=ingredient['id'],
                 recipe=instance,
                 amount=ingredient['amount']
                 )
-            #print(ingredient.amount)
         for tag in tags:
             tags_id = tag.id
             instance.tags.add(get_object_or_404(Tag, pk=tags_id))

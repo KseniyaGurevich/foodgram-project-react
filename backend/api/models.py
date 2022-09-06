@@ -103,7 +103,9 @@ class IngredientRecipe(models.Model):
         Recipe,
         on_delete=models.CASCADE,
     )
-    amount = models.IntegerField()
+    amount = models.IntegerField(
+        verbose_name='Количество'
+    )
 
     UniqueConstraint(
         fields=['ingredient', 'recipe'],
