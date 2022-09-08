@@ -1,4 +1,4 @@
-from django.db.models import Sum, Exists
+from django.db.models import Sum, Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -13,36 +13,12 @@ from .serializers import (RecipePostSerializer, RecipeGetSerializer,
                           IngredientSerializer, FavoriteRecipeSerializer,
                           ShortRecipeSerializer,
                           FollowSerializer)
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework import filters
 from .filters import Filter
-
-from rest_framework.mixins import CreateModelMixin
-
-def adding_ingredients_to_recipe(self, recipe):
-    ingredients_param = self.request.data.get("ingredients")
-    for ingredient_param in ingredients_param:
-        ingredient_id = ingredient_param.get("id")
-        amount = ingredient_param.get("amount")
-        if not Ingredient.objects.filter(id=ingredient_id).exists():
-            raise ValidationError("Переданных ингредиентов нет в базе!")
-        ingredientinrecipe, _ = IngredientRecipe.objects.get_or_create(
-            ingredient_id=ingredient_id, amount=amount, recipe=recipe
-        )
-
-
-# def adding_ingredients_to_recipe(self, recipe):
-#     ingredients_param = self.request.data.get("ingredients")
-#     for ingredient_param in ingredients_param:
-#         ingredient_id = ingredient_param.get("id")
-#         amount = ingredient_param.get("amount")
-#         if not Ingredient.objects.filter(id=ingredient_id).exists():
-#             raise ValidationError("Переданных ингредиентов нет в базе!")
-#         ingredientinrecipe, _ = IngredientRecipe.objects.get_or_create(
-#             ingredient_id=ingredient_id, amount=amount, recipe=recipe
-#         )
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -56,47 +32,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeGetSerializer
         return RecipePostSerializer
 
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     if user.is_authenticated:
-    #         return Recipe.objects.annotate(
-    #             is_favorited=Exists(
-    #                 Favorite.objects.filter(user=user, recipe=OuterRef("id"))
-    #             ),
-    #             is_in_shopping_cart=Exists(
-    #                 ShoppingCart.objects.filter(
-    #                     user=user, recipe=OuterRef("id")
-    #                 )
-    #             ),
-    #         ).select_related(
-    #             "author",
-    #         )
-    #     return Recipe.objects.all()
-
-
-    # def create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-    #     recipe_id = serializer.data.get('id')
-    #     recipe = get_object_or_404(Recipe, pk=recipe_id)
-    #     new_serializer = RecipeGetSerializer(
-    #         recipe,
-    #         context={'request': request}
-    #     )
-    #     return Response(new_serializer.data, status=status.HTTP_201_CREATED)
-
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        recipe_id = serializer.data.get('id')
-        recipe = get_object_or_404(Recipe, pk=recipe_id)
+        recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
         ingredients = self.request.data.pop('ingredients')
         for ingredient in ingredients:
             ingredient_id = ingredient.get("id")
             amount = ingredient.get("amount")
-            ingredientinrecipe, _ = IngredientRecipe.objects.get_or_create(
+            ingredientrecipe, _ = IngredientRecipe.objects.get_or_create(
                 ingredient_id=ingredient_id,
                 amount=amount,
                 recipe=recipe
@@ -105,11 +50,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe,
             context={'request': request}
         )
-        serializer_post = RecipePostSerializer(
-            recipe,
-            context={'request': request}
-        )
-        return Response(serializer_post.data, status=status.HTTP_201_CREATED)
+        return Response(new_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -119,6 +60,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
+        ingredients = self.request.data.pop('ingredients')
+        for ingredient in ingredients:
+            ingredient_id = ingredient.get("id")
+            amount = ingredient.get("amount")
+            ingredientrecipe, _ = IngredientRecipe.objects.get_or_create(
+                ingredient_id=ingredient_id,
+                amount=amount,
+                recipe=recipe
+            )
         new_serializer = RecipeGetSerializer(
             recipe,
             context={'request': request},
@@ -127,9 +77,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-        # recipe = serializer.save(author=self.request.user)
-        # adding_ingredients_to_recipe(self, recipe)
-
 
     def perform_update(self, serializer):
         serializer.save(author=self.request.user)
@@ -209,13 +156,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             else:
                 FavoriteRecipe.objects.create(user=request.user, recipe=recipe)
-                serializer = ShortRecipeSerializer(
-                    recipe,
-                    context={'request': request}
-                )
+                serializer = ShortRecipeSerializer(recipe)
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
-
         elif request.method == "DELETE":
             if recipe_in_favorite.exists():
                 recipe_in_favorite.delete()

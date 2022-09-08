@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
 
@@ -105,7 +106,12 @@ class IngredientRecipe(models.Model):
         on_delete=models.CASCADE,
     )
     amount = models.IntegerField(
-        verbose_name='Количество'
+        verbose_name='Количество',
+        validators=(
+            MinValueValidator(
+                1, 'Минимальное значение - 1'
+            ),
+        ),
     )
 
     class Meta:
@@ -126,14 +132,13 @@ class FavoriteRecipe(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='favorites',
         verbose_name='user'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='favorite_recipe',
     )
-    amount = models.IntegerField()
 
     UniqueConstraint(fields=['user', 'recipe'], name='favorite_unique')
 
