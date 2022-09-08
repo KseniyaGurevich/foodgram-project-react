@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.mixins import CreateModelMixin
 
 from .models import (Recipe, Tag, Ingredient, FavoriteRecipe,
                      ShoppingCart, IngredientRecipe)
@@ -72,6 +73,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         new_serializer = RecipeGetSerializer(
             recipe,
             context={'request': request},
+            partial=partial
         )
         return Response(new_serializer.data, status=status.HTTP_200_OK)
 

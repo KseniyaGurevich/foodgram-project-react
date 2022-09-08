@@ -114,10 +114,11 @@ class RecipePostSerializer(serializers.ModelSerializer):
         instance.image = validated_data.get('image', instance.image)
         instance.text = validated_data.get('text', instance.text)
         instance.cooking_time = validated_data.get('cooking_time', instance.cooking_time)
+        instance.tags.clear()
         IngredientRecipe.objects.filter(recipe=instance).delete()
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        instance = Recipe.objects.create(**validated_data)
+        print(instance.tags)
         for tag in tags:
             instance.tags.add(get_object_or_404(Tag, pk=tag.id))
         return super().update(instance, validated_data)
