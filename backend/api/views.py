@@ -1,15 +1,18 @@
-from django.db.models import Sum
+from django.db.models import Sum, Exists
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status
+from rest_framework.exceptions import ValidationError
+
 from .models import (Recipe, Tag, Ingredient, FavoriteRecipe,
                      ShoppingCart, IngredientRecipe)
 from users.models import User, Follow
 from .serializers import (RecipePostSerializer, RecipeGetSerializer,
                           TagSerializers, IngredientInRecipeSerializer,
                           IngredientSerializer, FavoriteRecipeSerializer,
-                          ShortRecipeSerializer, ShoppingCartSerializer)
+                          ShortRecipeSerializer,
+                          FollowSerializer)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -17,6 +20,29 @@ from rest_framework import filters
 from .filters import Filter
 
 from rest_framework.mixins import CreateModelMixin
+
+def adding_ingredients_to_recipe(self, recipe):
+    ingredients_param = self.request.data.get("ingredients")
+    for ingredient_param in ingredients_param:
+        ingredient_id = ingredient_param.get("id")
+        amount = ingredient_param.get("amount")
+        if not Ingredient.objects.filter(id=ingredient_id).exists():
+            raise ValidationError("Переданных ингредиентов нет в базе!")
+        ingredientinrecipe, _ = IngredientRecipe.objects.get_or_create(
+            ingredient_id=ingredient_id, amount=amount, recipe=recipe
+        )
+
+
+# def adding_ingredients_to_recipe(self, recipe):
+#     ingredients_param = self.request.data.get("ingredients")
+#     for ingredient_param in ingredients_param:
+#         ingredient_id = ingredient_param.get("id")
+#         amount = ingredient_param.get("amount")
+#         if not Ingredient.objects.filter(id=ingredient_id).exists():
+#             raise ValidationError("Переданных ингредиентов нет в базе!")
+#         ingredientinrecipe, _ = IngredientRecipe.objects.get_or_create(
+#             ingredient_id=ingredient_id, amount=amount, recipe=recipe
+#         )
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -30,16 +56,60 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeGetSerializer
         return RecipePostSerializer
 
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     if user.is_authenticated:
+    #         return Recipe.objects.annotate(
+    #             is_favorited=Exists(
+    #                 Favorite.objects.filter(user=user, recipe=OuterRef("id"))
+    #             ),
+    #             is_in_shopping_cart=Exists(
+    #                 ShoppingCart.objects.filter(
+    #                     user=user, recipe=OuterRef("id")
+    #                 )
+    #             ),
+    #         ).select_related(
+    #             "author",
+    #         )
+    #     return Recipe.objects.all()
+
+
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     recipe_id = serializer.data.get('id')
+    #     recipe = get_object_or_404(Recipe, pk=recipe_id)
+    #     new_serializer = RecipeGetSerializer(
+    #         recipe,
+    #         context={'request': request}
+    #     )
+    #     return Response(new_serializer.data, status=status.HTTP_201_CREATED)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
+        recipe_id = serializer.data.get('id')
+        recipe = get_object_or_404(Recipe, pk=recipe_id)
+        ingredients = self.request.data.pop('ingredients')
+        for ingredient in ingredients:
+            ingredient_id = ingredient.get("id")
+            amount = ingredient.get("amount")
+            ingredientinrecipe, _ = IngredientRecipe.objects.get_or_create(
+                ingredient_id=ingredient_id,
+                amount=amount,
+                recipe=recipe
+            )
         new_serializer = RecipeGetSerializer(
             recipe,
             context={'request': request}
         )
-        return Response(new_serializer.data, status=status.HTTP_201_CREATED)
+        serializer_post = RecipePostSerializer(
+            recipe,
+            context={'request': request}
+        )
+        return Response(serializer_post.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -57,6 +127,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+        # recipe = serializer.save(author=self.request.user)
+        # adding_ingredients_to_recipe(self, recipe)
+
 
     def perform_update(self, serializer):
         serializer.save(author=self.request.user)
@@ -170,8 +243,101 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class FollowViewSet(viewsets.ModelViewSet):
-    queryset = Follow.objects.all()
-    FollowSerializer = IngredientSerializer
+# class FollowViewSet(viewsets.ModelViewSet):
+#     queryset = Follow.objects.all()
+#     serializer_class = FollowSerializer
+#
+#     @action(
+#         detail=False,
+#         methods=['get'],
+#         permission_classes=(IsAuthenticated,)
+#     )
+#     def subscriptions(self, request):
+#         subs = Follow.objects.filter(user=request.user)
+#         return Response(subs, status=status.HTTP_200_OK)
+#
+#     @action(
+#         detail=True,
+#         methods=['post', 'delete'],
+#         permission_classes=(IsAuthenticated, )
+#     )
+#     def subscribe(self, request, pk):
+#         author = get_object_or_404(User, pk=pk)
+#         subscription = Follow.objects.filter(user=request.user, author=author)
+#         if request.method == 'POST':
+#             if subscription.exists():
+#                 return Response(
+#                     "Вы уже подписались на этого автора.",
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+#             elif author == request.user:
+#                 return Response(
+#                     "Нельзя подписаться на самого себя :)",
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+#             else:
+#                 Follow.objects.create(user=request.user, author=author)
+#                 serializer = FollowSerializer(author)
+#                 return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         elif request.method == 'DELETE':
+#             if subscription.exists():
+#                 subscription.delete()
+#                 return Response(
+#                     'Вы успешно отписались от этого автора!',
+#                     status=status.HTTP_204_NO_CONTENT
+#                 )
+#             else:
+#                 return Response(
+#                     'Вы ещё не подписаны на этого автора.',
+#                     status.HTTP_400_BAD_REQUEST
+#                 )
+
+class SubscriptionsViewSet(viewsets.ViewSet):
+    def get_permissions(self):
+        permission_classes = (IsAuthenticated,)
+        return [permission() for permission in permission_classes]
+
+    def list(self, request):
+        queryset = Follow.objects.filter(user=request.user)
+        serializer = FollowSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class SubscribeViewSet(viewsets.ViewSet):
+
+    def get_permissions(self):
+        permission_classes = (IsAuthenticated,)
+        return [permission() for permission in permission_classes]
+
+    def create(self, request, pk):
+        author = get_object_or_404(User, pk=pk)
+        subscription = Follow.objects.filter(user=request.user, author=author)
+        if subscription.exists():
+            return Response(
+                "Вы уже подписались на этого автора.",
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        elif author == request.user:
+            return Response(
+                "Нельзя подписаться на самого себя :)",
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        else:
+            Follow.objects.create(user=request.user, author=author)
+            serializer = FollowSerializer(author)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, pk):
+        author = get_object_or_404(User, pk=pk)
+        subscription = Follow.objects.filter(user=request.user, author=author)
+        if subscription.exists():
+            subscription.delete()
+            return Response(
+                'Вы успешно отписались от этого автора!',
+                status=status.HTTP_204_NO_CONTENT
+            )
+        else:
+            return Response(
+                'Вы ещё не подписаны на этого автора.',
+                status.HTTP_400_BAD_REQUEST
+            )

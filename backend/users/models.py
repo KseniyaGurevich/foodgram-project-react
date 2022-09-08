@@ -55,7 +55,7 @@ class Follow(models.Model):
         verbose_name="Подписчик"
     )
 
-    UniqueConstraint(fields=['user', 'author'], name='follow_unique')
+    UniqueConstraint(fields=['user', 'author'], name='unique_user_author')
 
     def __str__(self) -> str:
         return f"{self.author} {self.user}"

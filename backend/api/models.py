@@ -13,10 +13,9 @@ class Ingredient(models.Model):
         max_length=50,
         verbose_name='Единицы измерения'
     )
-    amount = models.IntegerField(default=0)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} {self.measurement_unit}'
 
 
 class Tag(models.Model):
@@ -68,7 +67,8 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         through='IngredientRecipe',
-        verbose_name='Ингрeдиенты'
+        verbose_name='Ингрeдиенты',
+        related_name='ingredients'
     )
     cooking_time = models.IntegerField(
         default=0,
@@ -98,6 +98,7 @@ class IngredientRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
+        related_name='ingredient'
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -107,13 +108,18 @@ class IngredientRecipe(models.Model):
         verbose_name='Количество'
     )
 
-    UniqueConstraint(
-        fields=['ingredient', 'recipe'],
-        name='ingredient_recipe_unique'
-    )
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['ingredient', 'recipe'],
+                name='unique_ingredient_recipe'
+            )
+        ]
 
     def __str__(self):
-        return f'{self.ingredient} {self.recipe}'
+        return (f'{self.recipe}'
+                f'{self.ingredient.name} ({self.ingredient.measurement_unit})'
+                f' - {self.amount}')
 
 
 class FavoriteRecipe(models.Model):
