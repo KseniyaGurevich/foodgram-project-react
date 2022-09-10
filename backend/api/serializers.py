@@ -139,7 +139,9 @@ class RecipeGetSerializer(serializers.ModelSerializer):
                   'cooking_time')
 
     def get_is_favorited(self, obj):
+        print('get_is_favorited, request')
         request = self.context.get("request")
+        print(request)
         if not request.user.is_authenticated:
             return False
         return FavoriteRecipe.objects.filter(user=request.user, recipe=obj).exists()
@@ -172,31 +174,27 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField(read_only=True)
-    recipes = serializers.SerializerMethodField(read_only=True)
-    recipes_count = serializers.SerializerMethodField(read_only=True)
-
-    # def validated_following(self, user):
-    #     if user == self.context.get('request').user:
-    #         raise serializers.ValidationError("Нельзя подписаться на самого себя ;)")
-    #     return user
+    id = serializers.ReadOnlyField(source='author.id')
+    username = serializers.ReadOnlyField(source='author.username')
+    email = serializers.ReadOnlyField(source='author.email')
+    first_name = serializers.ReadOnlyField(source='author.first_name')
+    last_name = serializers.ReadOnlyField(source='author.last_name')
+    is_subscribed = serializers.ReadOnlyField(source='author.is_subscribed')
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Follow
-        fields = '__all__'
-
-    def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if not user:
-            return False
-        return Follow.objects.filter(user=user, author=obj.author).exsist()
+        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed', 'recipes', 'recipes_count')
 
     def get_recipes(self, obj):
-        recipes = obj.recipes.all()
-        return ShortRecipeSerializer(recipes, many=True).data
+        recipes = Recipe.objects.filter(author_id=obj.author_id)
+        serializer = ShortRecipeSerializer(recipes, many=True)
+        return serializer.data
 
     def get_recipes_count(self, obj):
-        return obj.recipes.count()
+        recipes = Recipe.objects.filter(author_id=obj.author_id)
+        return recipes.count()
 
 
 
