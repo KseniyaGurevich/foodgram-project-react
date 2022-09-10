@@ -187,24 +187,12 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-# class SubscriptionsViewSet(viewsets.ViewSet):
-#     def get_permissions(self):
-#         permission_classes = (IsAuthenticated,)
-#         return [permission() for permission in permission_classes]
-#
-#     def list(self, request):
-#         queryset = Follow.objects.filter(user=request.user)
-#         serializer = FollowSerializer(queryset, many=True)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 class ListSubscriptions(APIView):
     def get_permissions(self):
         permission_classes = (IsAuthenticated,)
         return [permission() for permission in permission_classes]
 
     def get(self, request):
-        user = request.user
         list_author = Follow.objects.filter(user=request.user)
         serializer = FollowSerializer(
             list_author,
@@ -232,9 +220,11 @@ class IsSubscribe(APIView):
             )
         else:
             q = Follow.objects.create(user=request.user, author=author)
+            print('//////////')
+            print(q)
             serializer = FollowSerializer(
                 author,
-                #context={'request': 'request'}
+                context={'request': 'request'}
             )
             print('********')
             print(serializer.data)

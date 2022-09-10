@@ -187,13 +187,21 @@ class FollowSerializer(serializers.ModelSerializer):
         model = Follow
         fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed', 'recipes', 'recipes_count')
 
+    # def get_recipes(self, obj):
+    #     print('888888888888888888888888888')
+    #     print(obj.author, obj.author_id)
+    #     recipes = Recipe.objects.filter(author_id=obj.author_id)
+    #     serializer = ShortRecipeSerializer(recipes, many=True)
+    #     return serializer.data
+
     def get_recipes(self, obj):
-        recipes = Recipe.objects.filter(author_id=obj.author_id)
+        recipes = Recipe.objects.filter(author=obj.author)
         serializer = ShortRecipeSerializer(recipes, many=True)
         return serializer.data
 
+
     def get_recipes_count(self, obj):
-        recipes = Recipe.objects.filter(author_id=obj.author_id)
+        recipes = Recipe.objects.filter(author=obj.author)
         return recipes.count()
 
 
