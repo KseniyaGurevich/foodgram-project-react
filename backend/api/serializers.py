@@ -48,36 +48,57 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
+# class IngredientInRecipeSerializer(serializers.ModelSerializer):
+#     amount = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = Ingredient
+#         fields = ('id', 'name', 'measurement_unit', 'amount')
+#
+#     # def get_amount(self, obj):
+#     #     ingredients = IngredientRecipe.objects.filter(ingredient_id=obj.id)
+#     #     for ingredient in ingredients:
+#     #         return ingredient.amount
+#
+#     def get_amount(self, obj):
+#         return obj.ingredient.all().values_list('amount')[0][0]
+
+
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
-    amount = serializers.SerializerMethodField()
+    id = serializers.IntegerField(source='ingredient.id')
+    name = serializers.CharField(source='ingredient.name')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit',
+        read_only=True
+    )
 
     class Meta:
-        model = Ingredient
+        model = IngredientRecipe
         fields = ('id', 'name', 'measurement_unit', 'amount')
-
-    def get_amount(self, obj):
-        ingredients = IngredientRecipe.objects.filter(ingredient_id=obj.id)
-        for ingredient in ingredients:
-            return ingredient.amount
-
-    # def get_amount(self, obj):
-    #     return obj.ingredient.all().values_list('amount')[0][0]
 
 
 class AmountSerializer(serializers.ModelSerializer):
-    amount = serializers.SerializerMethodField()
+    id = serializers.IntegerField(write_only=True)
+    amount = serializers.IntegerField(write_only=True)
 
     class Meta:
-        model = Ingredient
+        model = IngredientRecipe
         fields = ('id', 'amount')
 
-    def get_amount(self, obj):
-        ingredients = IngredientRecipe.objects.filter(ingredient_id=obj.id)
-        for ingredient in ingredients:
-            return ingredient.amount
-
-    # def get_amount(self, obj):
-    #     return obj.ingredient.all().values_list('amount')[0][0]
+# class AmountSerializer(serializers.ModelSerializer):
+#     amount = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = Ingredient
+#         fields = ('id', 'amount')
+#
+#     # def get_amount(self, obj):
+#     #     ingredients = IngredientRecipe.objects.filter(ingredient_id=obj.id)
+#     #     for ingredient in ingredients:
+#     #         return ingredient.amount
+#
+#     def get_amount(self, obj):
+#         return obj.ingredient.all().values_list('amount')[0][0]
 
 
 class RecipePostSerializer(serializers.ModelSerializer):
@@ -87,6 +108,11 @@ class RecipePostSerializer(serializers.ModelSerializer):
         many=True
     )
     ingredients = AmountSerializer(many=True)
+    # ingredients = AmountSerializer(
+    #     source='ingredientrecipe_set',
+    #     required=True,
+    #     many=True
+    # )
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         validators=(MinValueValidator(
@@ -101,12 +127,25 @@ class RecipePostSerializer(serializers.ModelSerializer):
                   'is_in_shopping_cart', 'name', 'image', 'text',
                   'cooking_time')
 
+    def add_ingredients(self, recipe, ingredients):
+        for ingredient in ingredients:
+            ingredient_id = ingredient.get("id")
+            amount = ingredient.get("amount")
+            ingredientrecipe, _ = IngredientRecipe.objects.get_or_create(
+                ingredient_id=ingredient_id,
+                amount=amount,
+                recipe=recipe
+            )
+
+
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
+        self.add_ingredients(recipe, ingredients)
         for tag in tags:
             recipe.tags.add(get_object_or_404(Tag, pk=tag.id))
+        recipe.save()
         return recipe
 
     def update(self, instance, validated_data):
@@ -115,12 +154,13 @@ class RecipePostSerializer(serializers.ModelSerializer):
         instance.text = validated_data.get('text', instance.text)
         instance.cooking_time = validated_data.get('cooking_time', instance.cooking_time)
         instance.tags.clear()
+        instance.ingredients.clear()
         IngredientRecipe.objects.filter(recipe=instance).delete()
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        print(instance.tags)
         for tag in tags:
             instance.tags.add(get_object_or_404(Tag, pk=tag.id))
+        self.add_ingredients(instance, ingredients)
         return super().update(instance, validated_data)
 
 
@@ -129,7 +169,12 @@ class RecipeGetSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField(read_only=True)
     author = CurrentUserSerializer(read_only=True)
     tags = TagSerializers(read_only=True, many=True)
-    ingredients = IngredientInRecipeSerializer(read_only=True, many=True)
+    #ingredients = IngredientInRecipeSerializer(read_only=True, many=True)
+    ingredients = IngredientInRecipeSerializer(
+        source='ingredientrecipe_set',
+        required=True,
+        many=True
+    )
     image = Base64ImageField()
 
     class Meta:

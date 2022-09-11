@@ -37,15 +37,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
-        ingredients = self.request.data.pop('ingredients')
-        for ingredient in ingredients:
-            ingredient_id = ingredient.get("id")
-            amount = ingredient.get("amount")
-            ingredientrecipe, _ = IngredientRecipe.objects.get_or_create(
-                ingredient_id=ingredient_id,
-                amount=amount,
-                recipe=recipe
-            )
         new_serializer = RecipeGetSerializer(
             recipe,
             context={'request': request}
@@ -60,15 +51,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
-        ingredients = self.request.data.pop('ingredients')
-        for ingredient in ingredients:
-            ingredient_id = ingredient.get("id")
-            amount = ingredient.get("amount")
-            ingredientrecipe, _ = IngredientRecipe.objects.get_or_create(
-                ingredient_id=ingredient_id,
-                amount=amount,
-                recipe=recipe
-            )
         new_serializer = RecipeGetSerializer(
             recipe,
             context={'request': request},
