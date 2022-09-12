@@ -2,9 +2,11 @@ from django.db.models import Sum, Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.exceptions import ValidationError
+from rest_framework.generics import ListAPIView
 from rest_framework.mixins import CreateModelMixin
+from rest_framework.pagination import LimitOffsetPagination
 
 from .models import (Recipe, Tag, Ingredient, FavoriteRecipe,
                      ShoppingCart, IngredientRecipe)
@@ -21,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework import filters
 from .filters import Filter
-
+from django.core.paginator import Paginator
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
@@ -171,19 +173,13 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class ListSubscriptions(APIView):
-    def get_permissions(self):
-        permission_classes = (IsAuthenticated,)
-        return [permission() for permission in permission_classes]
+class ListSubscriptions(generics.ListAPIView):
+    serializer_class = SubscriptionsSerializer
+    permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
-        list_author = Follow.objects.filter(user=request.user)
-        serializer = SubscriptionsSerializer(
-            list_author,
-            context={'request': request},
-            many=True
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        author_list = Follow.objects.filter(user=self.request.user)
+        return author_list
 
 
 class IsSubscribe(APIView):
