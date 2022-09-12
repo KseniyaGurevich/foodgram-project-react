@@ -9,10 +9,12 @@ from rest_framework.mixins import CreateModelMixin
 from .models import (Recipe, Tag, Ingredient, FavoriteRecipe,
                      ShoppingCart, IngredientRecipe)
 from users.models import User, Follow
+#from users.serializers import SubscriptionsSerializer
 from .serializers import (RecipePostSerializer, RecipeGetSerializer,
                           TagSerializers, IngredientInRecipeSerializer,
                           IngredientSerializer, FavoriteRecipeSerializer,
-                          ShortRecipeSerializer, FollowSerializer)
+                          ShortRecipeSerializer, SubscriptionsSerializer,
+                          IsSubscribeSerializer)
 from rest_framework.decorators import action, api_view
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -176,7 +178,7 @@ class ListSubscriptions(APIView):
 
     def get(self, request):
         list_author = Follow.objects.filter(user=request.user)
-        serializer = FollowSerializer(
+        serializer = SubscriptionsSerializer(
             list_author,
             context={'request': request},
             many=True
@@ -201,15 +203,11 @@ class IsSubscribe(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         else:
-            q = Follow.objects.create(user=request.user, author=author)
-            print('//////////')
-            print(q)
-            serializer = FollowSerializer(
+            Follow.objects.create(user=request.user, author=author)
+            serializer = IsSubscribeSerializer(
                 author,
                 context={'request': 'request'}
             )
-            print('********')
-            print(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, pk):

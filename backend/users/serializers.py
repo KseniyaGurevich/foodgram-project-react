@@ -1,6 +1,7 @@
 from .models import User, Follow
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
+from api.models import Recipe
 
 
 class CurrentUserSerializer(UserSerializer):
@@ -20,3 +21,26 @@ class CurrentUserSerializer(UserSerializer):
                                      author=obj).exists()
 
 
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscriptionsSerializer(CurrentUserSerializer):
+    recipes = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'recipes', 'recipes_count')
+
+    def get_recipes(self, obj):
+        recipes = Recipe.objects.filter(author=obj)
+        serializer = ShortRecipeSerializer(recipes, many=True)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        recipes = Recipe.objects.filter(author=obj)
+        return recipes.count()
