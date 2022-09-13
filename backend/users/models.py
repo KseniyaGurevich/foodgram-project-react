@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import UniqueConstraint
 
 
 class User(AbstractUser):
@@ -36,6 +35,7 @@ class User(AbstractUser):
 
     class Meta:
         unique_together = ["username", "email"]
+        verbose_name_plural = 'Пользователи'
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.username}"
@@ -55,7 +55,14 @@ class Follow(models.Model):
         verbose_name="Подписчик"
     )
 
-    UniqueConstraint(fields=['user', 'author'], name='unique_user_author')
+    class Meta:
+        verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='unique_user_author'
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.author} {self.user}"

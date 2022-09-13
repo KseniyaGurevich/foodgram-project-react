@@ -1,6 +1,5 @@
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import UniqueConstraint
 
 from users.models import User
 
@@ -17,6 +16,9 @@ class Ingredient(models.Model):
 
     def __str__(self):
         return f'{self.name} {self.measurement_unit}'
+
+    class Meta:
+        verbose_name_plural = 'Ингредиенты'
 
 
 class Tag(models.Model):
@@ -40,6 +42,9 @@ class Tag(models.Model):
 
     def __str__(self):
         return f'{self.name} {self.id}'
+
+    class Meta:
+        verbose_name_plural = 'Тэги'
 
 
 class Recipe(models.Model):
@@ -92,7 +97,14 @@ class Recipe(models.Model):
         return f'{self.name}, {self.author}'
 
     class Meta:
-        ordering = ['pub_date']
+        verbose_name_plural = 'Рецепты'
+        ordering = ['-pub_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'name'],
+                name='unique_author_name'
+            )
+        ]
 
 
 class IngredientRecipe(models.Model):
@@ -121,6 +133,7 @@ class IngredientRecipe(models.Model):
                 name='unique_ingredient_recipe'
             )
         ]
+        verbose_name_plural = 'Ингредиенты в рецепте'
 
     def __str__(self):
         return (f'{self.recipe}'
@@ -140,7 +153,14 @@ class FavoriteRecipe(models.Model):
         related_name='favorite_recipe',
     )
 
-    UniqueConstraint(fields=['user', 'recipe'], name='favorite_unique')
+    class Meta:
+        verbose_name_plural = 'Избранные рецепты'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_user_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.user} {self.recipe}'
@@ -160,7 +180,14 @@ class ShoppingCart(models.Model):
         verbose_name='Рецепт'
     )
 
-    UniqueConstraint(fields=['user', 'recipe'], name='favorite_unique')
+    class Meta:
+        verbose_name_plural = 'Список покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_user_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.user} {self.recipe}'

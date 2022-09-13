@@ -1,7 +1,9 @@
-from .models import User, Follow
-from djoser.serializers import UserSerializer
-from rest_framework import serializers
 from api.models import Recipe
+from djoser.serializers import UserSerializer
+
+from rest_framework import serializers
+
+from .models import Follow, User
 
 
 class CurrentUserSerializer(UserSerializer):

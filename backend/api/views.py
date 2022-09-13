@@ -1,35 +1,38 @@
-from django.db.models import Sum, Exists, OuterRef
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status, generics
-from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView
-from rest_framework.mixins import CreateModelMixin
-from rest_framework.pagination import LimitOffsetPagination
-
-from .models import (Recipe, Tag, Ingredient, FavoriteRecipe,
-                     ShoppingCart, IngredientRecipe)
-from users.models import User, Follow
-#from users.serializers import SubscriptionsSerializer
-from .serializers import (RecipePostSerializer, RecipeGetSerializer,
-                          TagSerializers, IngredientInRecipeSerializer,
-                          IngredientSerializer, FavoriteRecipeSerializer,
-                          ShortRecipeSerializer, SubscriptionsSerializer,
-                          IsSubscribeSerializer)
-from rest_framework.decorators import action, api_view
-from rest_framework.views import APIView
+from rest_framework import filters, generics, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, \
+    IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
-from rest_framework import filters
+from rest_framework.views import APIView
+
+from users.models import Follow, User
+
 from .filters import Filter
-from django.core.paginator import Paginator
+from .models import (FavoriteRecipe, Ingredient, IngredientRecipe, Recipe,
+                     ShoppingCart, Tag)
+from .permissions import IsAuthorOrAdminPermission
+from .serializers import (IngredientSerializer,
+                          IsSubscribeSerializer, RecipeGetSerializer,
+                          RecipePostSerializer, ShortRecipeSerializer,
+                          SubscriptionsSerializer, TagSerializers)
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipePostSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = Filter
+
+    def get_permissions(self):
+        if self.action in ('update', 'destroy'):
+            permission_classes = [IsAuthorOrAdminPermission]
+        else:
+            permission_classes = [IsAuthenticatedOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -78,10 +81,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe__recipe_cart__user=request.user).values(
             'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(sum_amount=Sum('amount'))
-        shopping_list = [
-            f'Cписок покупок:\n'
-            f'\n'
-        ]
+        shopping_list = [f'Cписок покупок:\n']
         shopping_list += '\n'.join([
             f'{ingredient["ingredient__name"]}'
             f'({ingredient["ingredient__measurement_unit"]}) - '
@@ -160,7 +160,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
-    #permission_classes = (IsAdminOrReadOnly, )
     serializer_class = TagSerializers
     pagination_class = None
 

@@ -1,15 +1,16 @@
+import base64
+
+import webcolors
+from django.core.files.base import ContentFile
 from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
-from requests import Response
 from rest_framework import serializers
 
-from .models import (Recipe, Tag, Ingredient, IngredientRecipe,
-                     FavoriteRecipe, ShoppingCart)
-from users.models import User, Follow
+from users.models import Follow, User
 from users.serializers import CurrentUserSerializer
-import base64
-from django.core.files.base import ContentFile
-import webcolors
+
+from .models import (FavoriteRecipe, Ingredient, IngredientRecipe, Recipe,
+                     ShoppingCart, Tag)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -115,7 +116,10 @@ class RecipePostSerializer(serializers.ModelSerializer):
         instance.name = validated_data.get('name', instance.name)
         instance.image = validated_data.get('image', instance.image)
         instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get('cooking_time', instance.cooking_time)
+        instance.cooking_time = validated_data.get(
+            'cooking_time',
+            instance.cooking_time
+        )
         instance.tags.clear()
         instance.ingredients.clear()
         IngredientRecipe.objects.filter(recipe=instance).delete()
@@ -149,7 +153,9 @@ class RecipeGetSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request.user.is_authenticated:
             return False
-        return FavoriteRecipe.objects.filter(user=request.user, recipe=obj).exists()
+        return FavoriteRecipe.objects.filter(
+            user=request.user, recipe=obj
+        ).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get("request")
@@ -195,14 +201,15 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, obj):
         recipes = Recipe.objects.filter(author=obj.author)
-        recipes_limit = self.context['request'].query_params.get('recipes_limit')
+        recipes_limit = self.context['request'].query_params.get(
+            'recipes_limit'
+        )
         if recipes_limit:
             return ShortRecipeSerializer(
                 recipes[:int(recipes_limit)],
                 many=True
             ).data
         return ShortRecipeSerializer(recipes, many=True).data
-
 
     def get_recipes_count(self, obj):
         recipes = Recipe.objects.filter(author=obj.author)
@@ -234,7 +241,3 @@ class IsSubscribeSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         return True
-
-
-
-
