@@ -5,7 +5,6 @@ from django.core.files.base import ContentFile
 from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-
 from users.models import Follow, User
 from users.serializers import CurrentUserSerializer
 
@@ -22,20 +21,19 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-class Hex2NameColor(serializers.Field):
+class HexToNameColor(serializers.Field):
     def to_representation(self, value):
         return value
 
     def to_internal_value(self, data):
         try:
-            data = webcolors.hex_to_name(data)
+            return webcolors.hex_to_name(data)
         except ValueError:
             raise serializers.ValidationError('Для этого цвета нет имени')
-        return data
 
 
 class TagSerializers(serializers.ModelSerializer):
-    color = Hex2NameColor()
+    color = HexToNameColor()
 
     class Meta:
         model = Tag
@@ -96,7 +94,7 @@ class RecipePostSerializer(serializers.ModelSerializer):
         for ingredient in ingredients:
             ingredient_id = ingredient.get("id")
             amount = ingredient.get("amount")
-            ingredientrecipe, _ = IngredientRecipe.objects.get_or_create(
+            IngredientRecipe.objects.create(
                 ingredient_id=ingredient_id,
                 amount=amount,
                 recipe=recipe

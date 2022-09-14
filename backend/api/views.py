@@ -4,26 +4,23 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, \
-    IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from users.models import Follow, User
 
+from . import serializers
 from .filters import Filter
 from .models import (FavoriteRecipe, Ingredient, IngredientRecipe, Recipe,
                      ShoppingCart, Tag)
 from .permissions import IsAuthorOrAdminPermission
-from .serializers import (IngredientSerializer,
-                          IsSubscribeSerializer, RecipeGetSerializer,
-                          RecipePostSerializer, ShortRecipeSerializer,
-                          SubscriptionsSerializer, TagSerializers)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
+    """ Рецепты """
     queryset = Recipe.objects.all()
-    serializer_class = RecipePostSerializer
+    serializer_class = serializers.RecipePostSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = Filter
 
@@ -36,15 +33,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return RecipeGetSerializer
-        return RecipePostSerializer
+            return serializers.RecipeGetSerializer
+        return serializers.RecipePostSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
-        new_serializer = RecipeGetSerializer(
+        new_serializer = serializers.RecipeGetSerializer(
             recipe,
             context={'request': request}
         )
@@ -58,7 +55,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
-        new_serializer = RecipeGetSerializer(
+        new_serializer = serializers.RecipeGetSerializer(
             recipe,
             context={'request': request},
             partial=partial
@@ -81,14 +78,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe__recipe_cart__user=request.user).values(
             'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(sum_amount=Sum('amount'))
-        shopping_list = [f'Cписок покупок:\n']
+        shopping_list = ['Cписок покупок:\n']
         shopping_list += '\n'.join([
             f'{ingredient["ingredient__name"]}'
             f'({ingredient["ingredient__measurement_unit"]}) - '
             f'{ingredient["sum_amount"]}'
             for ingredient in ingredient_list
         ])
-        filename = f'shopping_cart.txt'
+        filename = 'shopping_cart.txt'
         response = HttpResponse(shopping_list, content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename={filename}'
         return response
@@ -111,7 +108,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             else:
                 ShoppingCart.objects.create(user=request.user, recipe=recipe)
-                serializer = ShortRecipeSerializer(recipe)
+                serializer = serializers.ShortRecipeSerializer(recipe)
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
         elif request.method == "DELETE":
@@ -143,7 +140,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             else:
                 FavoriteRecipe.objects.create(user=request.user, recipe=recipe)
-                serializer = ShortRecipeSerializer(recipe)
+                serializer = serializers.ShortRecipeSerializer(recipe)
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
         elif request.method == "DELETE":
@@ -159,29 +156,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    """Тэги"""
     queryset = Tag.objects.all()
-    serializer_class = TagSerializers
+    serializer_class = serializers.TagSerializers
     pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
+    """Ингредиенты"""
     queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
+    serializer_class = serializers.IngredientSerializer
     filter_backends = (filters.SearchFilter, )
     search_fields = ('^name',)
     pagination_class = None
 
 
 class ListSubscriptions(generics.ListAPIView):
-    serializer_class = SubscriptionsSerializer
+    """Список покупок"""
+    serializer_class = serializers.SubscriptionsSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        author_list = Follow.objects.filter(user=self.request.user)
-        return author_list
+        return Follow.objects.filter(user=self.request.user)
 
 
-class IsSubscribe(APIView):
+class Subscribe(APIView):
+    """Подписка на пользователя/отписка от пользователя"""
     def get_permissions(self):
         permission_classes = (IsAuthenticated,)
         return [permission() for permission in permission_classes]
@@ -199,7 +199,7 @@ class IsSubscribe(APIView):
             )
         else:
             Follow.objects.create(user=request.user, author=author)
-            serializer = IsSubscribeSerializer(
+            serializer = serializers.IsSubscribeSerializer(
                 author,
                 context={'request': 'request'}
             )
