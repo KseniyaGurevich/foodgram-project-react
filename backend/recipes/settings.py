@@ -26,7 +26,7 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'api',
-    'corsheaders',
+    #'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -37,8 +37,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    # 'corsheaders.middleware.CorsMiddleware',
+    # 'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'recipes.urls'
@@ -61,23 +61,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'recipes.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': os.getenv('DB_ENGINE', default="django.db.backends.postgresql"),
-#         'NAME': os.getenv('DB_NAME', default="postgres"),
-#         'USER': os.getenv('POSTGRES_USER', default="postgres"),
-#         'PASSWORD': os.getenv('POSTGRES_PASSWORD', default="postgres"),
-#         'HOST': os.getenv('DB_HOST', default="db"),
-#         'PORT': os.getenv('DB_PORT', default="5432")
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': os.getenv('DB_ENGINE', default="django.db.backends.postgresql"),
+        'NAME': os.getenv('DB_NAME', default="postgres"),
+        'USER': os.getenv('POSTGRES_USER', default="postgres"),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', default="postgres"),
+        'HOST': os.getenv('DB_HOST', default="db"),
+        'PORT': os.getenv('DB_PORT', default="5432")
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#     }
+# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -149,11 +149,5 @@ DJOSER = {
         'current_user': 'users.serializers.CurrentUserSerializer'
     },
 }
-
-CORS_URLS_REGEX = r'^/api/.*$'
-
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
 
 DEFAULT_AUTO_FIELD='django.db.models.AutoField'

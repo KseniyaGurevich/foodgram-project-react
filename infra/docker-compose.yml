@@ -7,12 +7,12 @@ services:
       - /var/lib/postgresql/data/
     env_file:
       - ./.env
-  web:
+  backend:
     image: kurvinkl/foodgram-backend:v1.1
     restart: always
     volumes:
-      - static_value:/app/backend/static/
-      - media_value:/app/backend/media/
+      - static_value:/app/static/
+      - media_value:/app/media/
     depends_on:
       - db
     env_file:
@@ -22,7 +22,7 @@ services:
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
-      - web
+      - backend
   nginx:
     image: nginx:1.19.3
     ports:
