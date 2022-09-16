@@ -111,7 +111,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 serializer = serializers.ShortRecipeSerializer(recipe)
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
-        elif request.method == "DELETE":
+        else:
             if recipe_in_shopping_cart.exists():
                 recipe_in_shopping_cart.delete()
                 return Response(
@@ -143,7 +143,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 serializer = serializers.ShortRecipeSerializer(recipe)
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
-        elif request.method == "DELETE":
+        else:
             if recipe_in_favorite.exists():
                 recipe_in_favorite.delete()
                 return Response('Рецепт успешно удалён из избранного',

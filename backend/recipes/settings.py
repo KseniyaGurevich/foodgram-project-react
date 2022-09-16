@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,7 +26,6 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'api',
-    #'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -129,11 +128,6 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 6,
 }
 
-SIMPLE_JWT = {
-   'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-   'AUTH_HEADER_TYPES': ('Bearer',),
-}
-
 DJOSER = {
     'HIDE_USERS': False,
     'LOGIN_FIELD': 'email',
@@ -150,4 +144,4 @@ DJOSER = {
     },
 }
 
-DEFAULT_AUTO_FIELD='django.db.models.AutoField'
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
