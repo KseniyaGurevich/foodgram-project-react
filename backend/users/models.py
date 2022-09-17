@@ -34,8 +34,13 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ["username", "first_name", "last_name", "password"]
 
     class Meta:
-        unique_together = ["username", "email"]
         verbose_name_plural = 'Пользователи'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['username', 'email'],
+                name='unique_username_email'
+            )
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.username}"
