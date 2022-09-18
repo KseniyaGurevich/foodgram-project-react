@@ -9,11 +9,11 @@ services:
       - ./.env
 
   backend:
-    image: kurvinkl/foodgram-backend:v1.8
+    image: kurvinkl/foodgram-backend:v1.9
     restart: always
     volumes:
       - static_value:/app/static/
-      - media_value:/media/
+      - media_value:media/
     depends_on:
       - db
     env_file:
