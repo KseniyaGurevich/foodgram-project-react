@@ -1,6 +1,6 @@
-from api.models import Ingredient
-
 from csv import DictReader
+
+from api.models import Ingredient
 
 
 def run():
