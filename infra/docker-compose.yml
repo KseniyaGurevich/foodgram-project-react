@@ -9,7 +9,7 @@ services:
       - ./.env
 
   backend:
-    image: kurvinkl/foodgram-backend:v1.6
+    image: kurvinkl/foodgram-backend:v1.7
     restart: always
     volumes:
       - static_value:/app/static/
