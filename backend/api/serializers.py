@@ -76,7 +76,7 @@ class RecipePostSerializer(serializers.ModelSerializer):
         many=True
     )
     ingredients = AmountSerializer(many=True)
-    image = Base64ImageField()
+    #image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         validators=(MinValueValidator(
             limit_value=1,
