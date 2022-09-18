@@ -44,7 +44,7 @@ jobs:
           context: backend/
           file: backend/Dockerfile
           push: true
-          tags: kurvinkl/foodgram-backend:v1.3
+          tags: kurvinkl/foodgram-backend:v1.4
 
   deploy:
     runs-on: ubuntu-latest
