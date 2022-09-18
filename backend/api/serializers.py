@@ -172,7 +172,9 @@ class FavoriteRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'recipe')
 
     def get_recipe(self, obj):
-        recipe = obj.recipes.all()
+        recipe = FavoriteRecipe.objects.filter(
+            user=self.context['request'].user
+        )
         return FavoriteRecipeSerializer(recipe, many=True).data
 
 
