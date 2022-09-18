@@ -164,20 +164,6 @@ class RecipeGetSerializer(serializers.ModelSerializer):
         ).exists()
 
 
-class FavoriteRecipeSerializer(serializers.ModelSerializer):
-    recipe = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Recipe
-        fields = ('id', 'recipe')
-
-    def get_recipe(self, obj):
-        recipe = FavoriteRecipe.objects.filter(
-            user=self.context['request'].user
-        )
-        return FavoriteRecipeSerializer(recipe, many=True).data
-
-
 class ShortRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
