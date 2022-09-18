@@ -1,11 +1,16 @@
-import django_filters
+from django_filters.rest_framework import FilterSet, filters
 
-from .models import Recipe
+from .models import Recipe, Tag
+from users.models import User
 
 
-class Filter(django_filters.FilterSet):
-    author = django_filters.NumberFilter(field_name='author__id')
-    tags = django_filters.CharFilter(field_name='tags__slug')
+class Filter(FilterSet):
+    author = filters.ModelChoiceFilter(queryset=User.objects.all())
+    tags = filters.ModelMultipleChoiceFilter(
+        queryset=Tag.objects.all(),
+        field_name='tags__slug',
+        to_field_name='slug',
+    )
 
     class Meta:
         model = Recipe
