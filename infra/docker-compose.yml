@@ -9,9 +9,7 @@ services:
       - ./.env
 
   backend:
-    build:
-      context: ../backend2/
-      dockerfile: Dockerfile
+    image: kurvinkl/foodgram-backend:v1.3
     restart: always
     volumes:
       - static_value:/app/static/
