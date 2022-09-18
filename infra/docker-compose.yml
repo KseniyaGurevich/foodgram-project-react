@@ -10,7 +10,7 @@ services:
 
   backend:
     build:
-      context: ../backend/
+      context: ../backend2/
       dockerfile: Dockerfile
     restart: always
     volumes:
