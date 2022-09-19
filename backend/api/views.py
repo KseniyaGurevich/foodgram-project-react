@@ -14,12 +14,14 @@ from . import serializers
 from .filters import Filter
 from .models import (FavoriteRecipe, Ingredient, IngredientRecipe, Recipe,
                      ShoppingCart, Tag)
+from .pagination import LimitPagination
 from .permissions import IsAuthorOrAdminPermission
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """ Рецепты """
     queryset = Recipe.objects.all()
+    pagination_class = LimitPagination
     serializer_class = serializers.RecipePostSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = Filter
